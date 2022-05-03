@@ -1,4 +1,4 @@
-package com.github.cache.api;
+package com.github.cache.api.cache;
 
 import java.util.Map;
 
