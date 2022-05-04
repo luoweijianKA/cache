@@ -1,9 +1,13 @@
 package com.github.cache.api.cache;
 
+import cn.hutool.core.collection.CollUtil;
 import com.github.cache.api.evict.CacheEvictContext;
 import com.github.cache.api.evict.ICacheEvict;
+import com.github.cache.api.expire.CacheExpire;
+import com.github.cache.api.expire.ICacheExpire;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,11 +23,29 @@ public class Cache<K,V> implements ICache<K,V>{
 
     private final ICacheEvict<K,V> cacheEvict;
 
+    private final ICacheExpire<K,V> cacheExpire;
+
     public Cache(CacheContext context) {
         this.map = context.map();
         this.sizeLimit = context.size();
         this.cacheEvict = context.cacheEvict();
+        this.cacheExpire = new CacheExpire<>(this);
     }
+
+
+    @Override
+    public ICache<K, V> expire(K key, long timeInMills) {
+        long expireTime = System.currentTimeMillis() + timeInMills;
+        return this.expireAt(key , expireTime);
+    }
+
+    @Override
+    public ICache<K, V> expireAt(K key, long timeInmMlls) {
+        this.cacheExpire.expire(key , timeInmMlls);
+        return this;
+    }
+
+
 
     @Override
     public int size() {
@@ -47,6 +69,8 @@ public class Cache<K,V> implements ICache<K,V>{
 
     @Override
     public V get(Object key) {
+        K genericKey = (K) key;
+        this.cacheExpire.refreshExpire(Collections.singletonList(genericKey));
         return map.get(key);
     }
 
@@ -86,6 +110,7 @@ public class Cache<K,V> implements ICache<K,V>{
 
     @Override
     public Set<K> keySet() {
+        this.refreshExpireAllKeys();
         return map.keySet();
     }
 
@@ -97,5 +122,13 @@ public class Cache<K,V> implements ICache<K,V>{
     @Override
     public Set<Entry<K, V>> entrySet() {
         return map.entrySet();
+    }
+
+    /**
+     * 刷新懒过期处理所有的 keys
+     * @since 0.0.3
+     */
+    private void refreshExpireAllKeys() {
+        this.cacheExpire.refreshExpire(map.keySet());
     }
 }
