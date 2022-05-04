@@ -1,5 +1,7 @@
 package com.github.cache.api.cache;
 
+import com.github.cache.api.expire.ICacheExpire;
+
 import java.util.Collection;
 import java.util.Map;
 
